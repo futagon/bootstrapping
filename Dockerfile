@@ -11,25 +11,29 @@ RUN apt-get update
 RUN apt-get upgrade -y
 
 # install dependency
-RUN apt-get -y install curl git-core build-essential libssl-dev
+RUN apt-get -y install curl git-core build-essential libssl-dev man
 
-# Install rbenv
-RUN git clone https://github.com/sstephenson/rbenv.git /usr/local/rbenv
-RUN echo '# rbenv setup' > /etc/profile.d/rbenv.sh
-RUN echo 'export RBENV_ROOT=/usr/local/rbenv' >> /etc/profile.d/rbenv.sh
-RUN echo 'export PATH="$RBENV_ROOT/bin:$PATH"' >> /etc/profile.d/rbenv.sh
-RUN echo 'eval "$(rbenv init -)"' >> /etc/profile.d/rbenv.sh
-RUN chmod +x /etc/profile.d/rbenv.sh
- 
-# install ruby-build
-RUN mkdir /usr/local/rbenv/plugins
-RUN git clone https://github.com/sstephenson/ruby-build.git /usr/local/rbenv/plugins/ruby-build
+# Install rbenv, ruby-build
+RUN git clone https://github.com/sstephenson/rbenv.git /root/.rbenv
+RUN git clone https://github.com/sstephenson/ruby-build.git /root/.rbenv/plugins/ruby-build
+RUN ./root/.rbenv/plugins/ruby-build/install.sh
+ENV PATH /root/.rbenv/bin:$PATH
+RUN echo 'eval "$(rbenv init -)"' >> /etc/profile.d/rbenv.sh # or /etc/profile
 
-# EXPORT RBENV ENVIROMENT
-ENV RBENV_ROOT /usr/local/rbenv
-ENV PATH $RBENV_ROOT/bin:$RBENV_ROOT/shims:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+# Install multiple versions of ruby
+ENV CONFIGURE_OPTS --disable-install-doc
 
 # install ruby-2.1.0
 RUN rbenv install 2.1.0 
 RUN rbenv rehash
 RUN rbenv global 2.1.0 
+RUN rbenv exec gem install bundler --no-ri --no-doc
+RUN rbenv rehash
+
+# install nvm
+RUN curl https://raw.github.com/creationix/nvm/master/install.sh | HOME=/root sh
+RUN echo '[[ -s /root/.nvm/nvm.sh ]] && . /root/.nvm/nvm.sh' > /etc/profile.d/nvm.sh
+RUN echo 'nvm install 0.11' | bash -l
+RUN echo 'nvm alias default 0.11' | bash -l
+
+CMD /bin/bash --login
